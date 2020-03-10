@@ -5,7 +5,7 @@ set more off
 cap log close
 
 ******************************************************************************
-cd "/Users/eugenia_p/Dropbox/MAS4CI_Experiments/Data_analysis"
+cd "C:\Users\andrea\Dropbox\MAS4CI - Experiments\Data_analysis"
 ******************************************************************************
 
 *-------------------------------------------------------------------------------------------
@@ -175,20 +175,26 @@ table treatment, c(mean payoff mean costly) // These are averages of individual 
 
 *CHECK IF MAS ALLOWS TO REDUCE EXPLORATION EFFORT (non parametric ttests)
 
-ranksum costly if  treat==3|treat==0, by(treatment) // MAS<solo
+ranksum costly if  treat==4|treat==0, by(treatment) // MAS<solo
 
-ranksum costly if  treat==3|treat==1, by(treatment) // MAS=choice
+ranksum costly if  treat==4|treat==1, by(treatment) // MAS<synth
 
-ranksum costly if  treat==3|treat==2, by(treatment) // MAS<rating trend
+ranksum costly if  treat==4|treat==2, by(treatment) // MAS=choice
+
+ranksum costly if  treat==4|treat==3, by(treatment) // MAS<rating trend
+
 *reg costly ib3.treatment
 
 *CHECK IF MAS ALLOWS TO INCREASE INDIVIDUAL PAYOFF (non parametric ttests)
 
-ranksum payoff if  treat==3|treat==0, by(treatment) // MAS>solo
+ranksum payoff if  treat==4|treat==0, by(treatment) // MAS>solo
 
-ranksum payoff if  treat==3|treat==1, by(treatment) // MAS=choice
+ranksum payoff if  treat==4|treat==1, by(treatment) // MAS>synth
 
-ranksum payoff if  treat==3|treat==2, by(treatment) // MAS>rating
+ranksum payoff if  treat==4|treat==2, by(treatment) // MAS=choice
+
+ranksum payoff if  treat==4|treat==3, by(treatment) // MAS>rating
+
 *reg payoff ib3.treatment
 
 use "Stata/data/MAB_data_group", clear
@@ -199,13 +205,15 @@ table treatment , c( mean group_correct_at_40 semean group_correct_at_40)
 *CHECK IF GROUPS IN MAS ARE BETTER IN GUESSING THE CORRECT OPTION (regression models)
 // Correct_at_40= average % of group members being correct at 40 round (when this is equal or above 0.75 it corresponds to group_correct_at_40=1)
 
-tobit correct_at_40 ib3.treatment, ll(0) ul(1) // average % of subjects choosing the correct option within groups at 40 round
-tobit correct_at_40 ib3.treatment confidence_level, ll(0) ul(1) // including confidence
+tobit correct_at_40 ib4.treatment, ll(0) ul(1) robust // average % of subjects choosing the correct option within groups at 40 round
+tobit correct_at_40 ib4.treatment if treatment != 0, ll(0) ul(1) robust
+tobit correct_at_40 ib4.treatment confidence_level, ll(0) ul(1) robust // including confidence
 
 //Group_correct_at_40 is the percentage of groups being correct at 40st round
 
-logit group_correct_at_40 ib3.treatment // % of groups chosing the correct option at 40 round
-logit group_correct_at_40 ib3.treatment confidence_level // including confidence
+logit group_correct_at_40 ib4.treatment ,robust // % of groups chosing the correct option at 40 round
+logit group_correct_at_40 ib4.treatment if treatment != 0 ,robust // % of groups chosing the correct option at 40 round
+logit group_correct_at_40 ib4.treatment confidence_level ,robust // including confidence
 
 *translate file into pdf
 graphlog using "preliminary_results/prelim_results_MAB.smcl",  lspacing(0.8) fwidth(0.6) enumerate replace // to include graphs in pdf!

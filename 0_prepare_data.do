@@ -5,7 +5,7 @@ set more off
 cap log close
 
 ******************************************************************************
-cd "/Users/eugenia_p/Dropbox/MAS4CI_Experiments"
+cd "C:\Users\andrea\Dropbox\MAS4CI - Experiments"
 ******************************************************************************
 
 
@@ -29,7 +29,7 @@ preserve
 *******************************prepare data MAB********************************
 drop if game=="PD"
 
-label define treatment 0 "Solo" 1 "Choice" 2 "Rating" 3 "MAS"
+label define treatment 0 "Solo" 1 "Solo_Synt" 2 "Choice" 3 "Rating" 4 "MAS"
 label values treatment treatment
 
 *CLEAN DATA
@@ -53,6 +53,10 @@ gen temp=1 if individual_exploration==1 & individual_is_active==1 & round_number
 bysort subject_id: egen costly_expl=sum(temp)
 gen leftover= 50 - costly // generate what would be left from costly exploration 
 
+* gen exploration var for all rounds (from 1 to 40)
+gen temp2=1 if individual_exploration==1 & individual_is_active==1 // identify costly explorations
+bysort subject_id: egen fullexploration=sum(temp2)
+
 gen temp0=1 if round_number==40 & individual_is_correct==1 // generate a var that identifies if individuals are correct at round 40, regardless of their treatment
 bysort subject_id: egen correct_at_40=mean(temp0)
 replace correct_at_40=0 if correct_at_40==.
@@ -61,6 +65,7 @@ gen temp1=1 if round_number==40 & group_quorum==1 & group_correct==1 & treatment
 bysort subject_id: egen group_correct_at_40=mean(temp1)
 replace group_correct_at_40=0 if group_correct_at_40==. & treatment!=0
 replace group_correct_at_40=correct_at_40 if treatment==0 // in the individual treatment group_correct_at_40 is equal to correct_at_40
+
 
 drop temp*
 
@@ -123,7 +128,7 @@ egen last_round = mean(max_round), by (subject_id)
 drop max_round
 drop if last_round<40
 
-collapse rating_diff first* leader* confidence_level overconfidence* _I* group_size costly_exp leftover payoff correct_at_40 tot_rounds_played tot_expl group_correct_at_40, by(subject_id treatment group_id)
+collapse rating_diff first* leader* confidence_level overconfidence* _I* group_size costly_exp fullexploration leftover payoff correct_at_40 tot_rounds_played tot_expl group_correct_at_40, by(subject_id treatment group_id)
 
 *list outliers for confidence values
 list subject_id treat confidence if confidence>4 // several outliers appear if we use the uncorrected confidence data 
@@ -140,7 +145,7 @@ bysort treat group_id: egen n_players=count(_N)
 
 save "Data_analysis/Stata/data/MAB_data_indiv", replace // collapsed version of dataset, includes only data per subject
 
-collapse leader* confidence overconfidence_value extr_ dum* _I* group_size costly_expl leftover payoff correct_at_40 tot_rounds_played tot_expl group_correct_at_40 n_players, by(treatment group_id)
+collapse leader* confidence overconfidence_value extr_ dum* _I* group_size costly_expl fullexploration leftover payoff correct_at_40 tot_rounds_played tot_expl group_correct_at_40 n_players, by(treatment group_id)
 
 drop if tot_rounds_played<40 // ****drop all those with less than 40 rounds ******
 drop if group_size>=3 & group_size<4 // drop groups of only 3 subjects..
@@ -152,7 +157,7 @@ restore
 *******************************prepare data PD********************************
 drop if game=="MAB"
 
-label define treatment 0 "Solo" 1 "Choice" 2 "Rating" 3 "MAS"
+label define treatment 0 "Solo" 1 "Solo_Synt" 2 "Choice" 3 "Rating" 4 "MAS"
 label values treatment treatment
 
 *CLEAN DATA
@@ -175,6 +180,10 @@ table treat if round_number==1, c(count subject)
 gen temp=1 if individual_exploration==1 & individual_is_active==1 & round_number>10 // identify costly explorations (rounds above 10)
 bysort subject_id: egen costly_expl=sum(temp)
 gen leftover= 50 - costly // generate what would be left from costly exploration 
+
+* gen exploration var for all rounds (from 1 to 40)
+gen temp2=1 if individual_exploration==1 & individual_is_active==1 // identify costly explorations
+bysort subject_id: egen fullexploration=sum(temp2)
 
 gen temp0=1 if round_number==40 & individual_is_correct==1 // generate a var that identifies if individuals are correct at round 40, regardless of their treatment
 bysort subject_id: egen correct_at_40=mean(temp0)
@@ -242,7 +251,7 @@ egen last_round = mean(max_round), by (subject_id)
 drop max_round
 drop if last_round<40
 
-collapse rating_diff first* leader* confidence_level overconfidence* _I* group_size costly_exp leftover payoff correct_at_40 tot_rounds_played tot_expl group_correct_at_40, by(subject_id treatment group_id)
+collapse rating_diff first* leader* confidence_level overconfidence* _I* group_size costly_exp fullexploration leftover payoff correct_at_40 tot_rounds_played tot_expl group_correct_at_40, by(subject_id treatment group_id)
 
 *list outliers for confidence values
 list subject_id treat confidence if confidence>4 // some outliers??
@@ -259,10 +268,12 @@ bysort treat group_id: egen n_players=count(_N)
 
 save "Data_analysis/Stata/data/PD_data_indiv", replace // collapsed version of dataset, includes only data per subject
 
-collapse leader* confidence overconfidence_value extr dum* _I* group_size costly_expl leftover payoff correct_at_40 tot_rounds_played tot_expl group_correct_at_40 n_players, by(treatment group_id)
+collapse leader* confidence overconfidence_value extr dum* _I* group_size costly_expl fullexploration leftover payoff correct_at_40 tot_rounds_played tot_expl group_correct_at_40 n_players, by(treatment group_id)
 
 drop if tot_rounds_played<40 // ****drop all those with less than 40 rounds ******
 drop if group_size>=3 & group_size<4 // drop groups of only 3 subjects..
 
+*AG: DROP IF n_players is below 4
+drop if n_players > 1 & group_size <4  
 save "Data_analysis/Stata/data/PD_data_group", replace
 
