@@ -1,0 +1,49 @@
+clear all
+
+set more off
+
+cap log close
+
+******************************************************************************
+cd "/Users/eugenia_p/Dropbox/MAS4CI_Experiments"
+******************************************************************************
+/*
+******************************************************************************
+cd "C:\Users\andrea\Dropbox\MAS4CI - Experiments"
+******************************************************************************
+*/
+
+*create one dataset containing both MAB and PD
+use "Data_analysis/Stata/data/MAB_data_long.dta"
+
+append using "/Users/eugenia_p/Dropbox/MAS4CI_Experiments/Data_analysis/Stata/data/PD_data_long.dta"
+
+preserve
+*collapse data at individual level (individual_exploration now becomes the percentage of rounds (max 10) explored)
+drop if round_number>10
+collapse treatment group_id individual_exploration correct_at_40 group_correct_at_40 (first)game, by(subject_id)
+
+encode game, gen (game_n)
+
+// DO SUBJECT IN PD EXPLORE LESS (BECAUSE THE GAME IS MORE COGNITIVE DEMANDING) THAN IN MAB?
+
+*make ttests to compare the percentage of free exploration (in the first 10 rounds) between games
+
+ttest individual_exploration if treatment==0, by(game_n) // PD vs MAB in solo
+
+ttest individual_exploration if treatment==1, by(game_n) // PD vs MAB in solo_synt
+
+ttest individual_exploration if treatment==2, by(game_n) // PD vs MAB in choice
+
+ttest individual_exploration if treatment==3, by(game_n) // PD vs MAB in rating
+
+ttest individual_exploration if treatment==4, by(game_n) // PD vs MAB in MAS --> No difference!
+
+restore
+
+*make graph
+collapse individual_exploration, by(round_number treatment game)
+drop if round_number >15
+twoway (line individual_exploration round_number if game=="MAB") (line individual_exploration round_number if game=="PD"), by (treatment) legend(order(1 "MAB" 2 "PD")) graphregion(color(white)) ytitle("Exploration %") ylabel(0(0.2)1) xline(10, lcolor(black) lpattern(dash)) xtitle("Round number") xlabel(1(2)15) // focused on the first 15 rounds
+*twoway (line individual_exploration round_number if treat==0 & game=="MAB") (line individual_exploration round_number if treat==0 & game=="PD"), title("Solo") legend(order(1 "MAB" 2 "PD")) graphregion(color(white)) ytitle("Exploration %") xline(10, lcolor(black) lpattern(dash)) xtitle("Round number") // per single couple of treatment
+*twoway (line individual_exploration round_number if game=="MAB") (line individual_exploration round_number if game=="PD"), by (treatment) legend(order(1 "MAB" 2 "PD")) graphregion(color(white)) ytitle("Exploration %") xline(10, lcolor(black) lpattern(dash)) xtitle("Round number") // for all rounds
